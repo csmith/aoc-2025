@@ -1,0 +1,11 @@
+version: 1
+author: "MD87"
+language: "Rust"
+image: "rust:1.91-alpine"
+code: "/code"
+workdir: "/code"
+runonce: "caro build --release --bin %zeroday%"
+cmd: "./target/release/%zeroday%"
+daypath: "src/bin/%zeroday%.rs"
+inputfile: "inputs/%zeroday%.txt"
+answerfile: "answers/%zeroday%.txt"
