@@ -1,49 +1,75 @@
+const DIAL_SIZE: i32 = 100;
+const INITIAL_POSITION: i32 = 50;
+
 fn main() {
-    let file = std::fs::read_to_string("inputs/01.txt").unwrap();
+    let file = std::fs::read_to_string("inputs/01.txt").expect("Couldn't read file");
 
-    let mut dial: i32 = 50;
-    let mut exact_zeroes: u32 = 0;
-    let mut passing_zeroes: u32 = 0;
+    let (_, part_one, part_two) = file.lines().map(parse_line).fold(
+        (INITIAL_POSITION, 0, 0),
+        |(position, exact_zeroes, passing_zeroes), movement| {
+            let new_position = rotate(position, movement);
+            let passes = count_passes(position, new_position);
+            let at_zero = u32::from(new_position % DIAL_SIZE == 0);
 
-    for l in file.lines() {
-        let old_dial = dial;
-        let direction = l.chars().next().unwrap();
-        let distance: i32 = l[1..].parse().unwrap();
+            (
+                new_position,
+                exact_zeroes + at_zero,
+                passing_zeroes + passes + at_zero,
+            )
+        },
+    );
 
-        match direction {
-            'L' => dial -= distance,
-            'R' => dial += distance,
-            _ => panic!("Unexpected direction '{}'", direction)
-        }
+    println!("{part_one}");
+    println!("{part_two}");
+}
 
-        // There are SO. MANY. edge cases trying to do this nicely.
-        //
-        //  5, 0,  5 ==> needs to count once, but isn't counted by checking floor(old/100) vs floor(new/100)
-        // -5, 0, -5 ==> needs to count once, but is double counted by that
-        //
-        // Fiddle with the min and max so we don't ever count starting/ending
-        // at zero as passing it. We'll just add the part 1 answer to cope with
-        // those
-        //
-        // Maybe there's a better solution, but after the fourth time I got the
-        // right answer for the example input, and the wrong answer for my own
-        // I lost patience.
-        let mut min = old_dial.min(dial);
-        let mut max = old_dial.max(dial);
-        if min % 100 == 0 {
-            min += 1
-        }
-        if max % 100 == 0 {
-            max -= 1
-        }
-        passing_zeroes += min.div_euclid(100).abs_diff(max.div_euclid(100));
+fn rotate(position: i32, movement: (bool, i32)) -> i32 {
+    let (clockwise, distance) = movement;
+    position + distance * if clockwise { 1 } else { -1 }
+}
 
-        dial = ((dial % 100) + 100) % 100;
-        if dial == 0 {
-            exact_zeroes += 1;
-        }
+fn parse_line(line: &str) -> (bool, i32) {
+    let mut chars = line.chars();
+    let clockwise = match chars.next().expect("No direction") {
+        'R' => true,
+        'L' => false,
+        other => panic!("Unknown direction '{other}'"),
+    };
+    let distance: i32 = chars.as_str().parse().expect("Invalid distance");
+
+    (clockwise, distance)
+}
+
+fn count_passes(old_dial_position: i32, new_dial_position: i32) -> u32 {
+    // We don't want to count when we start/end on a multiple of 100, as it'll
+    // cause fencepost errors. To do this, we create a half-open interval by
+    // adjusting one of the positions. It's a bit fiddly as the way we
+    // handle 0 isn't symmetrical (floor(0/100) == floor(1/100) != floor(-1/100)),
+    // so the adjustment depends on the direction of rotation.
+    let clockwise = i32::from(new_dial_position > old_dial_position);
+    let start = old_dial_position + clockwise - 1; // -1 if anti-clockwise
+    let end = new_dial_position - clockwise; // -1 if clockwise
+    start
+        .div_euclid(DIAL_SIZE)
+        .abs_diff(end.div_euclid(DIAL_SIZE))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_count_passes() {
+        assert_eq!(count_passes(1, 99), 0);
+        assert_eq!(count_passes(-1, -99), 0);
+        assert_eq!(count_passes(0, 1), 0);
+        assert_eq!(count_passes(1, 0), 0);
+        assert_eq!(count_passes(-1, 0), 0);
+        assert_eq!(count_passes(0, -1), 0);
+        assert_eq!(count_passes(0, 100), 0);
+        assert_eq!(count_passes(0, 200), 1);
+        assert_eq!(count_passes(-100, 200), 2);
+        assert_eq!(count_passes(-1, 1), 1);
+        assert_eq!(count_passes(-100, 0), 0);
     }
-
-    println!("{}", exact_zeroes);
-    println!("{}", exact_zeroes + passing_zeroes);
 }
