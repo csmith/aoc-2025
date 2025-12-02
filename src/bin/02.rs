@@ -1,3 +1,5 @@
+use std::io::Write;
+
 fn main() {
     let file = std::fs::read_to_string("inputs/02.txt").expect("Couldn't read file");
     let (part_one, part_two) = solve(file.lines().next().expect("No input?"));
@@ -6,29 +8,40 @@ fn main() {
 }
 
 fn solve(input: &str) -> (u64, u64) {
+    let mut part_one = 0;
+    let mut part_two = 0;
+
+    let mut buffer: Vec<u8> = Vec::with_capacity(20);
+
     input
         .split(',')
         .map(|pair| {
             let (start, end) = pair.split_once('-').unwrap();
             (start.parse::<u64>().unwrap(), end.parse::<u64>().unwrap())
         })
-        .flat_map(|(low, high)| low..=high)
-        .map(|id| {
-            let bytes = id.to_string().into_bytes();
-            let len = bytes.len();
+        .for_each(|(low, high)| {
+            for id in low..=high {
+                buffer.clear();
+                write!(&mut buffer, "{id}").unwrap();
+                let len = buffer.len();
+                let half_len = len / 2;
 
-            let is_part_one = (len % 2) == 0 && bytes[0..len / 2] == bytes[len / 2..];
-            let is_part_two = is_part_one
-                || (1..=len / 2)
-                    .filter(|i| len % i == 0)
-                    .any(|i| (i..len).all(|n| bytes[n] == bytes[n % i]));
+                let is_part_one = (len % 2) == 0 && (0..half_len).all(|i| buffer[i] == buffer[half_len + i]);
+                let is_part_two = is_part_one
+                    || (1..=half_len)
+                        .filter(|substr_len| len % substr_len == 0)
+                        .any(|substr_len| (substr_len..len).all(|n| buffer[n] == buffer[n % substr_len]));
 
-            (
-                if is_part_one { id } else { 0 },
-                if is_part_two { id } else { 0 },
-            )
-        })
-        .fold((0, 0), |(a1, a2), (b1, b2)| (a1 + b1, a2 + b2))
+                if is_part_one {
+                    part_one += id
+                }
+                if is_part_two {
+                    part_two += id
+                }
+            }
+        });
+
+    (part_one, part_two)
 }
 
 #[cfg(test)]
