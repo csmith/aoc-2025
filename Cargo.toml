@@ -11,3 +11,8 @@ strip = true
 lto = true
 panic = "abort"
 codegen-units = 1
+
+[profile.bench]
+inherits = "release"
+debug = true
+strip = false
