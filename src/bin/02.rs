@@ -10,21 +10,11 @@ fn solve(input: &str) -> (u64, u64) {
     let mut part_two = 0;
 
     // npm install --save is-even
-    let even: [bool; 11] = [
-        false,
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
+    let even: [bool; 12] = [
+        false, false, true, false, true, false, true, false, true, false, true, false,
     ];
 
-    let dividers: [Vec<usize>; 11] = [
+    let dividers: [Vec<usize>; 12] = [
         vec![],
         vec![],
         vec![],
@@ -36,6 +26,7 @@ fn solve(input: &str) -> (u64, u64) {
         vec![1, 2],
         vec![1, 3],
         vec![1, 2],
+        vec![1],
     ];
 
     let mut id: [u8; 20] = [0; 20];
@@ -60,8 +51,7 @@ fn solve(input: &str) -> (u64, u64) {
             let mut len = low.len();
             let mut half_len = len / 2;
             loop {
-                let is_part_one =
-                    even[len] && (0..half_len).all(|i| id[i] == id[half_len + i]);
+                let is_part_one = even[len] && (0..half_len).all(|i| id[i] == id[half_len + i]);
                 let is_part_two = is_part_one
                     || dividers[len].iter().any(|substr_len| {
                         let mut idx = 0;
