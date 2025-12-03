@@ -9,3 +9,5 @@ cmd: "./target/release/%zeroday%"
 daypath: "src/bin/%zeroday%.rs"
 inputfile: "inputs/%zeroday%.txt"
 answerfile: "answers/%zeroday%.txt"
+common:
+  - src/*.rs

@@ -1,4 +1,4 @@
-use std::io::Write;
+use aoc_2025::*;
 
 fn main() {
     let file = std::fs::read_to_string("inputs/02.txt").expect("Couldn't read file");
@@ -17,12 +17,12 @@ fn solve(input: &str) -> (u64, u64) {
         .split(',')
         .map(|pair| {
             let (start, end) = pair.split_once('-').unwrap();
-            (start.parse::<u64>().unwrap(), end.parse::<u64>().unwrap())
+            (atoi_u64(start), atoi_u64(end))
         })
         .for_each(|(low, high)| {
             for id in low..=high {
                 buffer.clear();
-                write!(&mut buffer, "{id}").unwrap();
+                split_u64(id, &mut buffer);
                 let len = buffer.len();
                 let half_len = len / 2;
 
@@ -42,6 +42,14 @@ fn solve(input: &str) -> (u64, u64) {
         });
 
     (part_one, part_two)
+}
+
+fn split_u64(val: u64, buf: &mut Vec<u8>) {
+    let mut n = val;
+    while n > 0 {
+        buf.push((n % 10) as u8);
+        n /= 10;
+    }
 }
 
 #[cfg(test)]
