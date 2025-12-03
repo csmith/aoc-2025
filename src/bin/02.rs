@@ -1,5 +1,3 @@
-use aoc_2025::*;
-
 fn main() {
     let file = std::fs::read_to_string("inputs/02.txt").expect("Couldn't read file");
     let (part_one, part_two) = solve(file.lines().next().expect("No input?"));
@@ -11,32 +9,98 @@ fn solve(input: &str) -> (u64, u64) {
     let mut part_one = 0;
     let mut part_two = 0;
 
-    let mut buffer: Vec<u8> = Vec::with_capacity(20);
+    // npm install --save is-even
+    let even: [bool; 11] = [
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+    ];
+
+    let dividers: [Vec<usize>; 11] = [
+        vec![],
+        vec![],
+        vec![],
+        vec![1],
+        vec![1],
+        vec![1],
+        vec![1, 2],
+        vec![1],
+        vec![1, 2],
+        vec![1, 3],
+        vec![1, 2],
+    ];
+
+    let mut id: [u8; 20] = [0; 20];
+    let mut target: [u8; 20] = [0; 20];
 
     input
         .split(',')
         .map(|pair| {
             let (start, end) = pair.split_once('-').unwrap();
-            (atoi_u64(start), atoi_u64(end))
+            (start.as_bytes(), end.as_bytes())
         })
         .for_each(|(low, high)| {
-            for id in low..=high {
-                buffer.clear();
-                split_u64(id, &mut buffer);
-                let len = buffer.len();
-                let half_len = len / 2;
+            // To make it easier to manually increment the byte arrays, store
+            // them reversed (so we don't have to shift when overflowing from
+            // 999 to 1000, say). This makes no difference to the actual checks.
+            target[..high.len()].copy_from_slice(high);
+            target[..high.len()].reverse();
+            let target_len = high.len();
 
-                let is_part_one = (len % 2) == 0 && (0..half_len).all(|i| buffer[i] == buffer[half_len + i]);
+            id[..low.len()].copy_from_slice(low);
+            id[..low.len()].reverse();
+            let mut len = low.len();
+            let mut half_len = len / 2;
+            loop {
+                let is_part_one =
+                    even[len] && (0..half_len).all(|i| id[i] == id[half_len + i]);
                 let is_part_two = is_part_one
-                    || (1..=half_len)
-                        .filter(|substr_len| len % substr_len == 0)
-                        .any(|substr_len| (substr_len..len).all(|n| buffer[n] == buffer[n % substr_len]));
+                    || dividers[len].iter().any(|substr_len| {
+                        let mut idx = 0;
+                        (*substr_len..len).all(|n| {
+                            // Manually track the original index to avoid doing modulo ops
+                            let result = id[n] == id[idx];
+                            idx += 1;
+                            if idx == *substr_len {
+                                idx = 0;
+                            }
+                            result
+                        })
+                    });
 
-                if is_part_one {
-                    part_one += id
-                }
                 if is_part_two {
-                    part_two += id
+                    let val = atoi_u64_bytes(id, len);
+                    part_two += val;
+
+                    if is_part_one {
+                        part_one += val;
+                    }
+                }
+
+                if len == target_len && id[..len] == target[..len] {
+                    break;
+                }
+
+                for i in 0..len {
+                    if id[i] != b'9' {
+                        id[i] += 1;
+                        break;
+                    } else {
+                        id[i] = b'0';
+                        if i == len - 1 {
+                            id[len] = b'1';
+                            len += 1;
+                            half_len = len / 2;
+                        }
+                    }
                 }
             }
         });
@@ -44,12 +108,12 @@ fn solve(input: &str) -> (u64, u64) {
     (part_one, part_two)
 }
 
-fn split_u64(val: u64, buf: &mut Vec<u8>) {
-    let mut n = val;
-    while n > 0 {
-        buf.push((n % 10) as u8);
-        n /= 10;
+fn atoi_u64_bytes(bytes: [u8; 20], len: usize) -> u64 {
+    let mut acc = 0u64;
+    for i in (0..len).rev() {
+        acc = acc * 10 + (bytes[i] - b'0') as u64
     }
+    acc
 }
 
 #[cfg(test)]
