@@ -3,7 +3,7 @@ use std::fs::File;
 
 fn main() {
     let file = File::open("inputs/04.txt").expect("Couldn't open file");
-    let mut grid: Vec<bool> = unsafe { Mmap::map(&file) }
+    let raw_grid: Vec<bool> = unsafe { Mmap::map(&file) }
         .expect("Couldn't read file")
         .iter()
         .filter_map(|&b| match b {
@@ -13,68 +13,64 @@ fn main() {
         })
         .collect();
 
-    let mut grid_the_second: Vec<bool> = vec![false; grid.len()];
     // Assuming all grids are square...
-    let width = grid.len().isqrt();
+    let width = raw_grid.len().isqrt();
     let height = width;
+
+    let mut grid: Vec<bool> = vec![false; (width+2)*(height+2)];
+    let mut grid_the_second: Vec<bool> = vec![false; (width+2)*(height+2)];
+
+    let mut source_y_offset = 0;
+    let mut dest_y_offset = width+2;
+    for _ in 0..height {
+        for x in 0..width {
+            grid[dest_y_offset+x+1] = raw_grid[source_y_offset+x]
+        }
+        source_y_offset += width;
+        dest_y_offset += width + 2;
+    }
 
     let mut first: bool = true;
     let mut count: u32 = 0;
 
     loop {
         let mut removed = false;
-        let mut y_offset = 0;
+        let mut y_offset = width+2;
         let mut last_y_offset = 0;
-        let mut next_y_offset = width;
+        let mut next_y_offset = (width+2)*2;
 
-        for y in 0..height {
-            let up = y > 0;
-            let down = y < height - 1;
-
-            for x in 0..width {
+        let grid_ptr = grid.as_ptr();
+        let grid_the_second_ptr = grid_the_second.as_mut_ptr();
+        
+        for _ in 1..=height {
+            let mut index = y_offset;
+            for x in 1..=width {
+                index += 1;
                 unsafe {
-                    if !grid.get_unchecked(y_offset + x) {
-                        *grid_the_second.get_unchecked_mut(y_offset + x) = false;
+                    if !*grid_ptr.add(index) {
+                        *grid_the_second_ptr.add(index) = false;
                         continue;
                     }
 
-                    let left = x > 0;
-                    let right = x < width - 1;
-                    let mut neighbours = 0;
-
-                    if up && down && left && right {
-                        // Most common case, don't bother with the 8 individual branches
-                        neighbours += *grid.get_unchecked(y_offset + x - 1) as u8
-                            + *grid.get_unchecked(y_offset + x + 1) as u8
-                            + *grid.get_unchecked(last_y_offset + x) as u8
-                            + *grid.get_unchecked(next_y_offset + x) as u8
-                            + *grid.get_unchecked(last_y_offset + x - 1) as u8
-                            + *grid.get_unchecked(next_y_offset + x - 1) as u8
-                            + *grid.get_unchecked(last_y_offset + x + 1) as u8
-                            + *grid.get_unchecked(next_y_offset + x + 1) as u8;
-                    } else {
-                        neighbours += (left && *grid.get_unchecked(y_offset + x - 1)) as u8;
-                        neighbours += (right && *grid.get_unchecked(y_offset + x + 1)) as u8;
-                        neighbours += (up && *grid.get_unchecked(last_y_offset + x)) as u8;
-                        neighbours += (down && *grid.get_unchecked(next_y_offset + x)) as u8;
-                        neighbours += (left && up && *grid.get_unchecked(last_y_offset + x - 1)) as u8;
-                        neighbours += (left && down && *grid.get_unchecked(next_y_offset + x - 1)) as u8;
-                        neighbours += (right && up && *grid.get_unchecked(last_y_offset + x + 1)) as u8;
-                        neighbours += (right && down && *grid.get_unchecked(next_y_offset + x + 1)) as u8;
-                    }
+                    let neighbours = *grid_ptr.add(index - 1) as u8
+                            + *grid_ptr.add(index + 1) as u8
+                            + *grid_ptr.add(last_y_offset + x) as u8
+                            + *grid_ptr.add(next_y_offset + x) as u8
+                            + *grid_ptr.add(last_y_offset + x - 1) as u8
+                            + *grid_ptr.add(next_y_offset + x - 1) as u8
+                            + *grid_ptr.add(last_y_offset + x + 1) as u8
+                            + *grid_ptr.add(next_y_offset + x + 1) as u8;
 
                     let remove = neighbours < 4;
-                    *grid_the_second.get_unchecked_mut(y_offset + x) = !remove;
-                    if remove {
-                        removed = true;
-                        count += 1;
-                    }
+                    *grid_the_second_ptr.add(index) = !remove;
+                    removed |= remove;
+                    count += remove as u32;
                 }
             }
 
             last_y_offset = y_offset;
             y_offset = next_y_offset;
-            next_y_offset += width;
+            next_y_offset += width+2;
         }
 
         if !removed {
@@ -83,9 +79,9 @@ fn main() {
 
         if first {
             println!("{count}");
+            first = false;
         }
-
-        first = false;
+        
         std::mem::swap(&mut grid, &mut grid_the_second);
     }
     println!("{count}")
