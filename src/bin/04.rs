@@ -23,10 +23,11 @@ fn main() {
 
     loop {
         let mut removed = false;
+        let mut y_offset = 0;
+        let mut last_y_offset = 0;
+        let mut next_y_offset = width;
 
         for y in 0..height {
-            let y_offset = y * width;
-
             for x in 0..width {
                 if !grid[y_offset + x] {
                     grid_the_second[y_offset + x] = false;
@@ -35,47 +36,26 @@ fn main() {
 
                 let mut neighbours = 0;
 
-                if x > 0 {
-                    neighbours += grid[y_offset + x - 1] as u8
-                }
+                neighbours += (x > 0 && grid[y_offset + x - 1]) as u8;
+                neighbours += (x < width - 1 && grid[y_offset + x + 1]) as u8;
+                neighbours += (y > 0 && grid[last_y_offset + x]) as u8;
+                neighbours += (y < height - 1 && grid[next_y_offset + x]) as u8;
+                neighbours += (x > 0 && y > 0 && grid[last_y_offset + x - 1]) as u8;
+                neighbours += (x > 0 && y < height - 1 && grid[next_y_offset + x - 1]) as u8;
+                neighbours += (x < width - 1 && y > 0 &&  grid[last_y_offset + x + 1]) as u8;
+                neighbours += (x < width - 1 && y < height - 1 && grid[next_y_offset + x + 1]) as u8;
 
-                if x < width - 1 {
-                    neighbours += grid[y_offset + x + 1] as u8
-                }
-
-                if y > 0 {
-                    neighbours += grid[(y - 1) * width + x] as u8
-                }
-
-                if y < height - 1 {
-                    neighbours += grid[(y + 1) * width + x] as u8
-                }
-
-                if x > 0 && y > 0 {
-                    neighbours += grid[(y - 1) * width + x - 1] as u8
-                }
-
-                // It was about this point I thought "I really should make a Grid type..."
-                if x > 0 && y < height - 1 {
-                    neighbours += grid[(y + 1) * width + x - 1] as u8
-                }
-
-                if x < width - 1 && y > 0 {
-                    neighbours += grid[(y - 1) * width + x + 1] as u8
-                }
-
-                if x < width - 1 && y < height - 1 {
-                    neighbours += grid[(y + 1) * width + x + 1] as u8
-                }
-
-                if neighbours < 4 {
+                let remove = neighbours < 4;
+                grid_the_second[y_offset + x] = !remove;
+                if remove {
                     removed = true;
                     count += 1;
-                    grid_the_second[y_offset + x] = false;
-                } else {
-                    grid_the_second[y_offset + x] = true;
                 }
             }
+
+            last_y_offset = y_offset;
+            y_offset = next_y_offset;
+            next_y_offset += width;
         }
 
         if !removed {
