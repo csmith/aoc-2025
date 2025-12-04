@@ -64,7 +64,7 @@ fn main() {
                     neighbours += grid[(y - 1) * width + x + 1] as u8
                 }
 
-                if x < width - 1 && y < width - 1 {
+                if x < width - 1 && y < height - 1 {
                     neighbours += grid[(y + 1) * width + x + 1] as u8
                 }
 
