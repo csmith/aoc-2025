@@ -19,12 +19,17 @@ fn main() {
 
     let mut grid: Vec<bool> = vec![false; (width+2)*(height+2)];
     let mut grid_the_second: Vec<bool> = vec![false; (width+2)*(height+2)];
+    let mut rolls: Vec<(usize, usize)> = Vec::new();
 
     let mut source_y_offset = 0;
     let mut dest_y_offset = width+2;
-    for _ in 0..height {
+    for y in 0..height {
         for x in 0..width {
-            grid[dest_y_offset+x+1] = raw_grid[source_y_offset+x]
+            let val = raw_grid[source_y_offset+x];
+            grid[dest_y_offset+x+1] = val;
+            if val {
+                rolls.push((y, x))
+            }
         }
         source_y_offset += width;
         dest_y_offset += width + 2;
@@ -35,42 +40,30 @@ fn main() {
 
     loop {
         let mut removed = false;
-        let mut y_offset = width+2;
-        let mut last_y_offset = 0;
-        let mut next_y_offset = (width+2)*2;
 
         let grid_ptr = grid.as_ptr();
+        grid_the_second.fill(false);
         let grid_the_second_ptr = grid_the_second.as_mut_ptr();
-        
-        for _ in 1..=height {
-            let mut index = y_offset;
-            for x in 1..=width {
-                index += 1;
-                unsafe {
-                    if !*grid_ptr.add(index) {
-                        *grid_the_second_ptr.add(index) = false;
-                        continue;
-                    }
 
-                    let neighbours = *grid_ptr.add(index - 1) as u8
-                            + *grid_ptr.add(index + 1) as u8
-                            + *grid_ptr.add(last_y_offset + x) as u8
-                            + *grid_ptr.add(next_y_offset + x) as u8
-                            + *grid_ptr.add(last_y_offset + x - 1) as u8
-                            + *grid_ptr.add(next_y_offset + x - 1) as u8
-                            + *grid_ptr.add(last_y_offset + x + 1) as u8
-                            + *grid_ptr.add(next_y_offset + x + 1) as u8;
+        unsafe {
+            rolls.retain(|(y, x)| {
+                let index = (y + 1) * (width + 2) + x + 1;
 
-                    let remove = neighbours < 4;
-                    *grid_the_second_ptr.add(index) = !remove;
-                    removed |= remove;
-                    count += remove as u32;
-                }
-            }
+                let neighbours = *grid_ptr.add(index - 1) as u8
+                    + *grid_ptr.add(index + 1) as u8
+                    + *grid_ptr.add(index - 1 - width - 2) as u8
+                    + *grid_ptr.add(index + 1 - width - 2) as u8
+                    + *grid_ptr.add(index - width - 2) as u8
+                    + *grid_ptr.add(index - 1 + width + 2) as u8
+                    + *grid_ptr.add(index + 1 + width + 2) as u8
+                    + *grid_ptr.add(index + width + 2) as u8;
 
-            last_y_offset = y_offset;
-            y_offset = next_y_offset;
-            next_y_offset += width+2;
+                let remove = neighbours < 4;
+                *grid_the_second_ptr.add(index) = !remove;
+                removed |= remove;
+                count += remove as u32;
+                !remove
+            })
         }
 
         if !removed {
