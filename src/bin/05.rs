@@ -11,9 +11,10 @@ fn main() {
     println!("{part_two}");
 }
 
+#[inline(always)]
 fn parse_input(input: &str) -> (Vec<(u64, u64)>, Vec<u64>) {
-    let mut ranges: Vec<(u64, u64)> = Vec::new();
-    let mut ingredients: Vec<u64> = Vec::new();
+    let mut ranges: Vec<(u64, u64)> = Vec::with_capacity(200);
+    let mut ingredients: Vec<u64> = Vec::with_capacity(1000);
     let mut passed_ranges = false;
 
     for line in input.lines() {
@@ -28,16 +29,35 @@ fn parse_input(input: &str) -> (Vec<(u64, u64)>, Vec<u64>) {
     }
 
     ranges.sort();
-    (ranges, ingredients)
+
+    let merged = ranges.iter().fold(Vec::with_capacity(ranges.len()), |mut acc: Vec<(u64, u64)>, &(l, u)| {
+        if let Some(&mut (_, ref mut pu)) = acc.last_mut() {
+            if l <= *pu + 1 {
+                *pu = (*pu).max(u);
+                return acc;
+            }
+        }
+        acc.push((l, u));
+        acc
+    });
+
+    (merged, ingredients)
 }
 
+#[inline(always)]
 fn part_one(ranges: &[(u64, u64)], ingredients: Vec<u64>) -> usize {
     ingredients
         .iter()
-        .filter(|i| ranges.iter().take_while(|(l, _)| l <= i).any(|(_, u)| *i <= u))
+        .filter(|i| {
+            ranges
+                .iter()
+                .take_while(|(l, _)| l <= i)
+                .any(|(_, u)| *i <= u)
+        })
         .count()
 }
 
+#[inline(always)]
 fn part_two(ranges: &[(u64, u64)]) -> u64 {
     let (count, _) = ranges
         .iter()
@@ -60,7 +80,7 @@ mod tests {
     #[test]
     fn test_parse_input() {
         let (ranges, ingredients) = parse_input(EXAMPLE_INPUT);
-        assert_eq!(vec!((3, 5), (10, 14), (12, 18), (16, 20)), ranges);
+        assert_eq!(vec!((3, 5), (10, 20)), ranges);
         assert_eq!(vec!(1, 5, 8, 11, 17, 32), ingredients);
     }
 
