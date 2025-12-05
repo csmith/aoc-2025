@@ -4,8 +4,9 @@ use std::cmp::max;
 fn main() {
     let file = std::fs::read_to_string("inputs/05.txt").expect("Couldn't read file");
     let (ranges, ingredients) = parse_input(file.as_str());
-    let part_one = part_one(ranges.clone(), ingredients);
-    let part_two = part_two(ranges);
+    let ranges_slice = ranges.as_slice();
+    let part_one = part_one(ranges_slice, ingredients);
+    let part_two = part_two(ranges_slice);
     println!("{part_one}");
     println!("{part_two}");
 }
@@ -26,21 +27,21 @@ fn parse_input(input: &str) -> (Vec<(u64, u64)>, Vec<u64>) {
         }
     }
 
+    ranges.sort();
     (ranges, ingredients)
 }
 
-fn part_one(ranges: Vec<(u64, u64)>, ingredients: Vec<u64>) -> usize {
+fn part_one(ranges: &[(u64, u64)], ingredients: Vec<u64>) -> usize {
     ingredients
         .iter()
-        .filter(|i| ranges.iter().any(|(l, u)| l <= i && i <= &u))
+        .filter(|i| ranges.iter().take_while(|(l, _)| l <= i).any(|(_, u)| *i <= u))
         .count()
 }
 
-fn part_two(mut ranges: Vec<(u64, u64)>) -> u64 {
-    ranges.sort();
+fn part_two(ranges: &[(u64, u64)]) -> u64 {
     let (count, _) = ranges
         .iter()
-        .fold((0, 0u64), |(count, highest), (lower, upper)| {
+        .fold((0, 0), |(count, highest), (lower, upper)| {
             if upper < &highest {
                 (count, highest)
             } else {
@@ -59,33 +60,33 @@ mod tests {
     #[test]
     fn test_parse_input() {
         let (ranges, ingredients) = parse_input(EXAMPLE_INPUT);
-        assert_eq!(vec!((3, 5), (10, 14), (16, 20), (12, 18)), ranges);
+        assert_eq!(vec!((3, 5), (10, 14), (12, 18), (16, 20)), ranges);
         assert_eq!(vec!(1, 5, 8, 11, 17, 32), ingredients);
     }
 
     #[test]
     fn test_part_one() {
         let (ranges, ingredients) = parse_input(EXAMPLE_INPUT);
-        assert_eq!(3, part_one(ranges, ingredients));
+        assert_eq!(3, part_one(ranges.as_slice(), ingredients));
     }
 
     #[test]
     fn test_part_two() {
         let (ranges, _) = parse_input(EXAMPLE_INPUT);
-        assert_eq!(14, part_two(ranges));
+        assert_eq!(14, part_two(ranges.as_slice()));
     }
 
     #[test]
     fn test_part_two_better() {
-        assert_eq!(11, part_two(vec!((10, 15), (15, 20))));
-        assert_eq!(11, part_two(vec!((10, 15), (10, 20))));
-        assert_eq!(11, part_two(vec!((10, 20), (10, 20))));
-        assert_eq!(16, part_two(vec!((10, 25), (10, 20))));
-        assert_eq!(16, part_two(vec!((10, 20), (10, 25))));
-        assert_eq!(11, part_two(vec!((10, 15), (15, 20))));
-        assert_eq!(11, part_two(vec!((10, 15), (16, 20))));
-        assert_eq!(1, part_two(vec!((10, 10))));
-        assert_eq!(1, part_two(vec!((10, 10), (10, 10))));
-        assert_eq!(2, part_two(vec!((10, 10), (11, 11))));
+        assert_eq!(11, part_two(&[(10, 15), (15, 20)]));
+        assert_eq!(11, part_two(&[(10, 15), (10, 20)]));
+        assert_eq!(11, part_two(&[(10, 20), (10, 20)]));
+        assert_eq!(16, part_two(&[(10, 25), (10, 20)]));
+        assert_eq!(16, part_two(&[(10, 20), (10, 25)]));
+        assert_eq!(11, part_two(&[(10, 15), (15, 20)]));
+        assert_eq!(11, part_two(&[(10, 15), (16, 20)]));
+        assert_eq!(1, part_two(&[(10, 10)]));
+        assert_eq!(1, part_two(&[(10, 10), (10, 10)]));
+        assert_eq!(2, part_two(&[(10, 10), (11, 11)]));
     }
 }
