@@ -16,7 +16,11 @@ fn main() {
 
     let mut part_one = 0u64;
 
-    lines.iter().for_each(|l| {
+    lines.iter()
+        .enumerate()
+        .filter(|(i, _)| i % 2 == 0)
+        .map(|(_, v)| v)
+        .for_each(|l| {
         l.iter().enumerate().for_each(|(i, v)| match v {
             b'S' => unsafe { *beams.add(i + 1) += 1 },
             b'^' => unsafe {
